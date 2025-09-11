@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tap & Earn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff6f2; --card:#ffffff;
+    --accent1:#4facfe; --accent2:#00f2fe;
+    --warm1:#ff7676; --warm2:#ffb476;
+    --muted:#6b6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#222;
+       background:linear-gradient(180deg,var(--bg),#fff);min-height:100vh;display:flex;flex-direction:column}
+  .card{flex:1;overflow:auto;padding:16px}
+  header{display:flex;align-items:center;gap:12px}
+  .logo{width:50px;height:50px;border-radius:12px;overflow:hidden}
+  .logo img{width:100%;height:100%;object-fit:contain}
+  .title{font-weight:800;font-size:18px}
+  .statusRow{margin-left:auto;display:flex;gap:8px}
+  .pill{background:#f8f8f8;padding:6px 12px;border-radius:999px;font-weight:700}
+  .wheel-wrap{position:relative;width:86vw;max-width:320px;height:86vw;max-height:320px;margin:18px auto}
+  .wheel{width:100%;height:100%;border-radius:50%;transition:transform 4s cubic-bezier(.17,.67,.83,.67);
+         box-shadow:0 12px 30px rgba(0,0,0,0.06),inset 0 6px rgba(255,255,255,0.6)}
+  .wheel.segs{background:conic-gradient(#ffd36e 0 45deg,#ffb476 45deg 90deg,#ff7676 90deg 135deg,
+                                        #ffb6d1 135deg 180deg,#a6e6c6 180deg 225deg,#7fb4ff 225deg 270deg,
+                                        #dfa6ff 270deg 315deg,#ffd36e 315deg 360deg);
+              border:8px solid rgba(255,255,255,0.6)}
+  .pointer{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:10;
+           width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+           border-bottom:24px solid var(--warm1)}
+  .center-coin{position:absolute;width:88px;height:88px;border-radius:50%;left:50%;top:50%;
+               transform:translate(-50%,-50%);background:#ffd36e;display:flex;align-items:center;justify-content:center;
+               border:4px solid #fff;z-index:6}
+  .center-coin img{width:60px;height:60px}
+  .label{position:absolute;left:50%;top:50%;transform-origin:0 0;font-weight:700;color:#1a1a1a;pointer-events:none}
+  .controls{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;padding:12px;border-radius:12px;border:0;font-weight:800;cursor:pointer}
+  .btn-watch{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#fff}
+  .btn-spin{background:linear-gradient(90deg,var(--warm1),var(--warm2));color:#fff}
+  .hint{text-align:center;font-size:13px;color:var(--muted);margin-top:10px}
+  .pop{position:fixed;left:50%;top:32%;transform:translate(-50%,-50%) scale(0);
+       background:#fff;padding:10px 16px;border-radius:12px;font-weight:800;
+       box-shadow:0 12px 30px rgba(0,0,0,0.12);transition:transform .25s;z-index:120}
+  .pop.show{transform:translate(-50%,-50%) scale(1)}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);
+           display:flex;align-items:center;justify-content:center;z-index:110;visibility:hidden;opacity:0;
+           transition:opacity .2s}
+  .overlay.show{visibility:visible;opacity:1}
+  .ovCard{background:#fff;padding:18px;border-radius:14px;max-width:300px;text-align:center}
+  .meter{height:12px;background:#eee;border-radius:999px;margin-top:14px;overflow:hidden}
+  .meter .bar{height:100%;width:0;background:linear-gradient(90deg,#ffd36e,#ff7676)}
+  .nav{display:flex;justify-content:space-around;background:#fff;box-shadow:0 -2px 6px rgba(0,0,0,0.1)}
+  .nav button{flex:1;padding:12px;border:0;background:none;font-weight:700;cursor:pointer}
+  .hidden{display:none}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+  th,td{border:1px solid #ccc;padding:6px;text-align:center}
+</style>
+</head>
+<body>
+<div class="card" id="spinPage">
+  <header>
+    <div class="logo"><img src="https://i.ibb.co/LDHjg19m/1000064821-removebg-preview.png"></div>
+    <div><div class="title">Tap & Earn</div></div>
+    <div class="statusRow">
+      <div class="pill">Coins: <span id="points">0</span></div>
+      <div class="pill">Lives: <span id="lives">0</span></div>
+    </div>
+  </header>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <div id="wheel" class="wheel segs"></div>
+    <div class="center-coin"><img src="https://i.ibb.co/LDHjg19m/1000064821-removebg-preview.png"></div>
+  </div>
+
+  <div style="text-align:center;margin:6px 0">
+    <div class="pill">Daily spins left: <span id="spinsLeft">50</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="watchBtn" class="btn btn-watch">▶️ Watch (Get 1 Life)</button>
+    <button id="spinBtn" class="btn btn-spin">🎯 Spin (Use 1 Life)</button>
+  </div>
+
+  <div class="hint">⚠️ You must watch for 14 seconds to earn a life.</div>
+</div>
+
+<!-- Wallet Page -->
+<div class="card hidden" id="walletPage">
+  <h2>Wallet</h2>
+  <p>Balance: <b><span id="usdtBalance">0</span> USDT (BEP20)</b></p>
+  <button id="convertBtn" class="btn btn-spin">Convert 1000 Coins → 5 USDT (BEP20)</button>
+  
+  <h3 style="margin-top:18px">Withdraw</h3>
+  <input id="walletAddr" placeholder="Wallet Address (BEP20)" style="width:100%;padding:8px;margin-bottom:6px">
+  <input id="withdrawAmt" placeholder="Amount (min 20 USDT)" type="number" style="width:100%;padding:8px;margin-bottom:6px">
+  <button id="withdrawBtn" class="btn btn-watch">Withdraw</button>
+
+  <h3 style="margin-top:18px">History</h3>
+  <table>
+    <thead><tr><th>Address</th><th>Amount (USDT BEP20)</th><th>Status</th></tr></thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+</div>
+
+<div class="nav">
+  <button onclick="showPage('spin')">🎡 Spin</button>
+  <button onclick="showPage('wallet')">💰 Wallet</button>
+</div>
+
+<!-- Monetag SDK -->
+<script src='//libtl.com/sdk.js' data-zone='9857499' data-sdk='show_9857499'></script>
+
+<!-- Overlay -->
+<div id="overlay" class="overlay" aria-hidden="true">
+  <div class="ovCard">
+    <div>Watching Ad... wait 14s</div>
+    <div class="meter"><div id="bar" class="bar"></div></div>
+    <button id="ovCancel">Cancel</button>
+  </div>
+</div>
+
+<div id="pop" class="pop" aria-hidden="true">+0</div>
+
+<script>
+(function(){
+  const REQUIRED_MS = 14000, DAILY_MAX_SPINS=50;
+  const segments=[5,10,15,20,25,30,50,70], segCount=segments.length;
+
+  const pointsEl=document.getElementById('points'),
+        livesEl=document.getElementById('lives'),
+        spinsLeftEl=document.getElementById('spinsLeft'),
+        wheel=document.getElementById('wheel'),
+        watchBtn=document.getElementById('watchBtn'),
+        spinBtn=document.getElementById('spinBtn'),
+        overlay=document.getElementById('overlay'),
+        bar=document.getElementById('bar'),
+        ovCancel=document.getElementById('ovCancel'),
+        pop=document.getElementById('pop'),
+        usdtBalanceEl=document.getElementById('usdtBalance'),
+        convertBtn=document.getElementById('convertBtn'),
+        withdrawBtn=document.getElementById('withdrawBtn'),
+        historyBody=document.getElementById('historyBody');
+
+  // Keys
+  const K_POINTS='points',K_LIVES='lives',K_DATE='date',K_COUNT='count',K_USDT='usdt',K_HIST='history';
+
+  let points=+localStorage.getItem(K_POINTS)||0,
+      lives=+localStorage.getItem(K_LIVES)||0,
+      usdt=+localStorage.getItem(K_USDT)||0;
+
+  function today(){let d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+  let date=localStorage.getItem(K_DATE),count=+localStorage.getItem(K_COUNT)||0;
+  if(date!==today()){date=today();count=0;localStorage.setItem(K_DATE,date);localStorage.setItem(K_COUNT,count);}
+
+  function refreshUI(){
+    pointsEl.textContent=points;
+    livesEl.textContent=lives;
+    spinsLeftEl.textContent=Math.max(0,DAILY_MAX_SPINS-count);
+    usdtBalanceEl.textContent=usdt.toFixed(2);
+    spinBtn.disabled=(lives<=0||count>=DAILY_MAX_SPINS);
+    convertBtn.disabled=(points<1000);
+  }
+  refreshUI();
+
+  // Draw labels
+  function drawLabels(){
+    wheel.querySelectorAll('.label').forEach(n=>n.remove());
+    const w=wheel.clientWidth,h=wheel.clientHeight,cx=w/2,cy=h/2,r=Math.min(w,h)*0.32;
+    for(let i=0;i<segCount;i++){
+      const angle=(360/segCount)*i+(360/segCount)/2;
+      const rad=(angle-90)*Math.PI/180;
+      const x=cx+Math.cos(rad)*r, y=cy+Math.sin(rad)*r;
+      const el=document.createElement('div');
+      el.className='label';el.textContent=segments[i];
+      el.style.left=x+'px';el.style.top=y+'px';el.style.fontSize=Math.max(11,Math.floor(w/22))+'px';
+      el.style.transform="translate(-50%,-50%)";wheel.appendChild(el);
+    }
+  } setTimeout(drawLabels,20); window.onresize=()=>setTimeout(drawLabels,80);
+
+  function showPop(txt){pop.textContent=txt;pop.classList.add('show');setTimeout(()=>pop.classList.remove('show'),1200);}
+
+  let spinning=false,rot=0;
+  function spin(){
+    if(spinning||lives<=0||count>=DAILY_MAX_SPINS)return;
+    spinning=true;spinBtn.disabled=true;lives--;localStorage.setItem(K_LIVES,lives);
+    const idx=Math.floor(Math.random()*segCount),seg=360/segCount,deg=idx*seg+seg/2;
+    const full=6+Math.floor(Math.random()*3),final=full*360+(360-deg);
+    rot=(rot+final);wheel.style.transition="transform 4s cubic-bezier(.17,.67,.83,.67)";
+    wheel.style.transform=`rotate(${rot}deg)`;
+    setTimeout(()=>{
+      points+=segments[idx];localStorage.setItem(K_POINTS,points);
+      count++;localStorage.setItem(K_COUNT,count);
+      refreshUI();showPop("+"+segments[idx]);spinning=false;spinBtn.disabled=false;
+    },4200);
+  }
+  spinBtn.onclick=spin;
+
+  // Overlay timer
+  let timer;
+  function startOverlay(){
+    overlay.classList.add("show");bar.style.width="0%";let start=Date.now();
+    timer=setInterval(()=>{let el=Date.now()-start,p=(el/REQUIRED_MS)*100;
+      bar.style.width=Math.min(100,p)+"%";
+      if(el>=REQUIRED_MS){clearInterval(timer);overlay.classList.remove("show");
+        lives++;localStorage.setItem(K_LIVES,lives);refreshUI();showPop("+1 life");}},150);}
+  ovCancel.onclick=()=>{clearInterval(timer);overlay.classList.remove("show");showPop("No life")};
+  watchBtn.onclick=()=>{try{if(typeof show_9857499==="function")show_9857499();}catch(e){}startOverlay();};
+
+  // Wallet conversion
+  convertBtn.onclick=()=>{
+    if(points>=1000){points-=1000;usdt+=5;localStorage.setItem(K_POINTS,points);localStorage.setItem(K_USDT,usdt);
+      refreshUI();showPop("+5 USDT (BEP20)");}
+  };
+
+  // Withdraw
+  function loadHistory(){return JSON.parse(localStorage.getItem(K_HIST)||"[]");}
+  function saveHistory(h){localStorage.setItem(K_HIST,JSON.stringify(h));}
+  function renderHistory(){
+    const h=loadHistory();historyBody.innerHTML="";
+    const now=Date.now();
+    h.forEach(item=>{
+      if(item.status==="Pending" && now-item.time>=72*3600*1000){item.status="Completed";}
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${item.addr}</td><td>${item.amount} USDT (BEP20)</td><td>${item.status}</td>`;
+      historyBody.appendChild(tr);
+    });
+    saveHistory(h);
+  }
+  withdrawBtn.onclick=()=>{
+    const addr=document.getElementById('walletAddr').value.trim();
+    const amt=+document.getElementById('withdrawAmt').value;
+    if(!addr||amt<20||amt>usdt){alert("Invalid withdraw");return;}
+    usdt-=amt;localStorage.setItem(K_USDT,usdt);refreshUI();
+    const h=loadHistory();h.push({addr,amount:amt,status:"Pending",time:Date.now()});saveHistory(h);renderHistory();
+    document.getElementById('walletAddr').value="";document.getElementById('withdrawAmt').value="";
+  };
+  renderHistory();
+
+  // Page toggle
+  window.showPage=function(p){
+    document.getElementById('spinPage').classList.add('hidden');
+    document.getElementById('walletPage').classList.add('hidden');
+    if(p==='spin')document.getElementById('spinPage').classList.remove('hidden');
+    if(p==='wallet')document.getElementById('walletPage').classList.remove('hidden');
+    renderHistory();
+  }
+})();
+</script>
+</body>
+</html>
