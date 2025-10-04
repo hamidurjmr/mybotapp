@@ -572,6 +572,7 @@
 
   <div class="spins-info">
     <div class="pill">Daily spins left: <span id="spinsLeft">100</span></div>
+    <div class="pill">Ads watched: <span id="adsWatched">0</span>/100</div>
   </div>
   
   <div class="progress-container">
@@ -600,7 +601,7 @@
   <div class="wallet-section">
     <h3>Withdraw</h3>
     <input id="walletAddr" class="input-field" placeholder="Wallet Address (BEP20)">
-    <input id="withdrawAmt" class="input-field" placeholder="Amount (min 20 USDT)" type="number" min="20">
+    <input id="withdrawAmt" class="input-field" placeholder="Amount (min 50 USDT)" type="number" min="50">
     <button id="withdrawBtn" class="btn btn-watch">Withdraw</button>
   </div>
 
@@ -633,10 +634,11 @@
 <!-- Overlay (no cancel) -->
 <div id="overlay" class="overlay" aria-hidden="true">
   <div class="ovCard">
-    <div id="ovText">Showing ad... please wait</div>
+    <div id="ovText">Watching ad... Don't close (14s)</div>
     <div class="meter">
       <div id="bar" class="bar"></div>
     </div>
+    <div class="small" id="timeLeft">14 seconds remaining</div>
   </div>
 </div>
 
@@ -645,9 +647,10 @@
 <script>
 (function(){
   // Settings: updated per your request
-  const REQUIRED_MS = 10000;      // watch time to get 1 life (10s)
+  const REQUIRED_MS = 14000;      // watch time to get 1 life (14s) - increased from 10s
   const AFTER_SPIN_AD_MS = 8000;  // interstitial duration after spin (8s)
-  const DAILY_MAX_SPINS = 100;    // changed to 100 as requested
+  const DAILY_MAX_SPINS = 100;    // daily spin limit
+  const DAILY_MAX_ADS = 100;      // daily ad watch limit - same as spins
   // Reward segments (10 to 20 only) - reduced as requested
   const segments = [10, 12, 14, 16, 18, 20, 10, 12];
   const segCount = segments.length;
@@ -656,6 +659,7 @@
   const pointsEl = document.getElementById('points'),
         livesEl = document.getElementById('lives'),
         spinsLeftEl = document.getElementById('spinsLeft'),
+        adsWatchedEl = document.getElementById('adsWatched'),
         spinsProgress = document.getElementById('spinsProgress'),
         spinsProgressText = document.getElementById('spinsProgressText'),
         wheel = document.getElementById('wheel'),
@@ -664,6 +668,7 @@
         overlay = document.getElementById('overlay'),
         bar = document.getElementById('bar'),
         ovText = document.getElementById('ovText'),
+        timeLeftEl = document.getElementById('timeLeft'),
         pop = document.getElementById('pop'),
         usdtBalanceEl = document.getElementById('usdtBalance'),
         convertBtn = document.getElementById('convertBtn'),
@@ -674,13 +679,14 @@
         walletNavBtn = document.getElementById('walletNavBtn');
 
   // storage keys
-  const K_POINTS='points',K_LIVES='lives',K_DATE='date',K_COUNT='count',K_USDT='usdt',K_HIST='history',K_PREMIUM='premium';
+  const K_POINTS='points',K_LIVES='lives',K_DATE='date',K_COUNT='count',K_USDT='usdt',K_HIST='history',K_PREMIUM='premium',K_ADS_WATCHED='ads_watched';
 
   // load safe
   let points = Number(localStorage.getItem(K_POINTS)) || 0;
   let lives = Number(localStorage.getItem(K_LIVES)) || 0;
   let usdt = Number(localStorage.getItem(K_USDT)) || 0;
   let isPremium = localStorage.getItem(K_PREMIUM) === 'true';
+  let adsWatched = Number(localStorage.getItem(K_ADS_WATCHED)) || 0;
 
   function today(){ 
     const d = new Date(); 
@@ -691,15 +697,19 @@
   if(date !== today()){ 
     date = today(); 
     count = 0; 
+    adsWatched = 0;
     localStorage.setItem(K_DATE, date); 
     localStorage.setItem(K_COUNT, count); 
+    localStorage.setItem(K_ADS_WATCHED, adsWatched);
   }
 
   function refreshUI(){
     pointsEl.textContent = points;
     livesEl.textContent = lives;
     const spinsLeft = Math.max(0, DAILY_MAX_SPINS - count);
+    const adsLeft = Math.max(0, DAILY_MAX_ADS - adsWatched);
     spinsLeftEl.textContent = spinsLeft;
+    adsWatchedEl.textContent = adsWatched;
     
     // Update progress bar
     const progressPercent = (count / DAILY_MAX_SPINS) * 100;
@@ -708,6 +718,7 @@
     
     usdtBalanceEl.textContent = usdt.toFixed(2);
     spinBtn.disabled = (lives <= 0 || count >= DAILY_MAX_SPINS);
+    watchBtn.disabled = (adsWatched >= DAILY_MAX_ADS);
     convertBtn.disabled = (points < 5000);
     
     // Hide premium card if user is already premium
@@ -822,11 +833,52 @@
 
   // overlay ad timer (no cancel)
   let timer = null;
+  let adStartTime = null;
+  let adCompleted = false;
+  
   function clearTimer(){ 
     if(timer){ 
       clearInterval(timer); 
       timer = null; 
     } 
+  }
+
+  // Detect if user tries to leave the page during ad
+  function setupAdLeaveDetection() {
+    window.addEventListener('beforeunload', handleAdLeave);
+    window.addEventListener('blur', handleAdLeave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  }
+  
+  function removeAdLeaveDetection() {
+    window.removeEventListener('beforeunload', handleAdLeave);
+    window.removeEventListener('blur', handleAdLeave);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }
+  
+  function handleAdLeave(e) {
+    if (!adCompleted && adStartTime) {
+      const timeWatched = Date.now() - adStartTime;
+      if (timeWatched < REQUIRED_MS) {
+        // User left before completing ad
+        showNotification('Ad not completed. No life awarded.', 'error');
+        adCompleted = true;
+        clearTimer();
+        overlay.classList.remove('show');
+        removeAdLeaveDetection();
+        return true;
+      }
+    }
+  }
+  
+  function handleVisibilityChange() {
+    if (document.hidden && !adCompleted && adStartTime) {
+      const timeWatched = Date.now() - adStartTime;
+      if (timeWatched < REQUIRED_MS) {
+        // User switched tabs/windows
+        showNotification('Please complete the ad to get life', 'warning');
+      }
+    }
   }
 
   // Try to show SDK interstitial; if SDK not available or doesn't close within given timeout, use fallback simulated overlay.
@@ -872,6 +924,12 @@
       return;
     }
 
+    // Check daily ad limit
+    if(adsWatched >= DAILY_MAX_ADS) {
+      showNotification('Daily ad limit reached', 'warning');
+      return;
+    }
+
     try{
       if(typeof show_9857499 === 'function'){
         try{ 
@@ -883,20 +941,37 @@
     overlay.classList.add('show'); 
     ovText.textContent = 'Watching ad (reward)... please wait'; 
     bar.style.width = '0%';
+    adStartTime = Date.now();
+    adCompleted = false;
+    
+    // Setup detection for user leaving ad
+    setupAdLeaveDetection();
+    
     clearTimer();
     const start = Date.now();
     timer = setInterval(() => {
       const elapsed = Date.now() - start;
       const p = (elapsed / REQUIRED_MS) * 100;
+      const secondsLeft = Math.ceil((REQUIRED_MS - elapsed) / 1000);
       bar.style.width = Math.min(100, p) + '%';
+      timeLeftEl.textContent = secondsLeft + ' seconds remaining';
+      
       if(elapsed >= REQUIRED_MS){
         clearTimer(); 
         overlay.classList.remove('show');
-        lives++; 
-        localStorage.setItem(K_LIVES, lives); 
-        refreshUI(); 
-        showPop('+1 life');
-        showNotification('Life added successfully!', 'success');
+        removeAdLeaveDetection();
+        
+        // Only reward if user didn't leave early
+        if (!adCompleted) {
+          adCompleted = true;
+          lives++; 
+          adsWatched++;
+          localStorage.setItem(K_LIVES, lives); 
+          localStorage.setItem(K_ADS_WATCHED, adsWatched);
+          refreshUI(); 
+          showPop('+1 life');
+          showNotification('Life added successfully!', 'success');
+        }
       }
     }, 150);
   }
@@ -969,8 +1044,8 @@
       return;
     }
     
-    if(isNaN(amt) || amt < 20) {
-      showNotification('Minimum withdrawal amount is 20 USDT', 'error');
+    if(isNaN(amt) || amt < 50) {  // Changed from 20 to 50
+      showNotification('Minimum withdrawal amount is 50 USDT', 'error');
       return;
     }
     
