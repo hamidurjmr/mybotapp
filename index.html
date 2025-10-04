@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Tap & Earn — Limited (10–50 coins)</title>
+<title>Tap & Earn — Limited (10–20 coins)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -17,6 +17,7 @@
     --success: #4CAF50;
     --warning: #FF9800;
     --error: #F44336;
+    --premium: #ff6b35;
   }
   
   * {
@@ -195,6 +196,13 @@
   .btn-spin {
     background: linear-gradient(90deg, var(--warm1), var(--warm2));
     color: #fff;
+  }
+  
+  .btn-premium {
+    background: linear-gradient(90deg, var(--premium), #ff8c42);
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 12px;
   }
   
   .hint {
@@ -384,6 +392,128 @@
   .wallet-section h2, .wallet-section h3 {
     margin-bottom: 10px;
   }
+  
+  /* New Premium Section Styles - Small */
+  .premium-card {
+    background: linear-gradient(135deg, #fff8f6, #fff0eb);
+    border: 1px solid var(--premium);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+    font-size: 12px;
+  }
+  
+  .premium-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .premium-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--premium);
+  }
+  
+  .premium-badge {
+    background: var(--premium);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+  }
+  
+  .premium-price {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--premium);
+    margin: 6px 0;
+  }
+  
+  .premium-benefits {
+    text-align: left;
+    margin: 8px 0;
+    font-size: 11px;
+  }
+  
+  .benefit-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .benefit-icon {
+    color: var(--premium);
+    margin-right: 6px;
+    font-weight: bold;
+    font-size: 10px;
+  }
+  
+  .address-container {
+    background: #f8f8f8;
+    padding: 8px;
+    border-radius: 6px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+  }
+  
+  .address {
+    font-size: 10px;
+    word-break: break-all;
+    font-family: monospace;
+    margin-bottom: 6px;
+  }
+  
+  .copy-btn {
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid var(--premium);
+    color: var(--premium);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  
+  .copy-btn:hover {
+    background: rgba(255, 107, 53, 0.2);
+  }
+  
+  .steps {
+    margin: 8px 0;
+  }
+  
+  .step {
+    display: flex;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  
+  .step-number {
+    width: 16px;
+    height: 16px;
+    background: var(--premium);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: 6px;
+    flex-shrink: 0;
+    font-size: 10px;
+  }
+  
+  .highlight {
+    color: var(--premium);
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -400,6 +530,37 @@
       <div class="pill">Lives: <span id="lives">0</span></div>
     </div>
   </header>
+
+  <!-- Small Premium Ads Remove Card -->
+  <div class="premium-card">
+    <div class="premium-header">
+      <div class="premium-title">🚫 Remove Ads</div>
+      <span class="premium-badge">$16</span>
+    </div>
+    
+    <div class="premium-benefits">
+      <div class="benefit-item">
+        <span class="benefit-icon">✓</span>
+        <span>No ads after spins</span>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">✓</span>
+        <span>No ads for lives</span>
+      </div>
+    </div>
+    
+    <div class="address-container">
+      <div class="address">0x8Ed272B8003eC72F434929EB7E712dea2772A360</div>
+      <div class="small">Send 16 USDT (BEP20)</div>
+      <button class="copy-btn" onclick="copyAdsRemoveAddress()">
+        📋 Copy
+      </button>
+    </div>
+    
+    <button class="btn btn-premium" onclick="contactTelegram()">
+      Contact @HamidurYtG
+    </button>
+  </div>
 
   <div class="wheel-wrap">
     <div class="pointer" role="presentation"></div>
@@ -425,7 +586,7 @@
     <button id="spinBtn" class="btn btn-spin">🎯 Spin (Use 1 Life)</button>
   </div>
   
-  <div class="hint">Spin the wheel to earn coins (10-50 per spin)</div>
+  <div class="hint">Spin the wheel to earn coins (10-20 per spin)</div>
 </div>
 
 <!-- Wallet Page -->
@@ -487,8 +648,8 @@
   const REQUIRED_MS = 10000;      // watch time to get 1 life (10s)
   const AFTER_SPIN_AD_MS = 8000;  // interstitial duration after spin (8s)
   const DAILY_MAX_SPINS = 100;    // changed to 100 as requested
-  // Reward segments (10 to 50)
-  const segments = [10,15,20,25,30,40,45,50];
+  // Reward segments (10 to 20 only) - reduced as requested
+  const segments = [10, 12, 14, 16, 18, 20, 10, 12];
   const segCount = segments.length;
 
   // UI refs
@@ -513,12 +674,13 @@
         walletNavBtn = document.getElementById('walletNavBtn');
 
   // storage keys
-  const K_POINTS='points',K_LIVES='lives',K_DATE='date',K_COUNT='count',K_USDT='usdt',K_HIST='history';
+  const K_POINTS='points',K_LIVES='lives',K_DATE='date',K_COUNT='count',K_USDT='usdt',K_HIST='history',K_PREMIUM='premium';
 
   // load safe
   let points = Number(localStorage.getItem(K_POINTS)) || 0;
   let lives = Number(localStorage.getItem(K_LIVES)) || 0;
   let usdt = Number(localStorage.getItem(K_USDT)) || 0;
+  let isPremium = localStorage.getItem(K_PREMIUM) === 'true';
 
   function today(){ 
     const d = new Date(); 
@@ -547,6 +709,11 @@
     usdtBalanceEl.textContent = usdt.toFixed(2);
     spinBtn.disabled = (lives <= 0 || count >= DAILY_MAX_SPINS);
     convertBtn.disabled = (points < 5000);
+    
+    // Hide premium card if user is already premium
+    if(isPremium) {
+      document.querySelector('.premium-card').style.display = 'none';
+    }
   }
   refreshUI();
 
@@ -628,7 +795,13 @@
     wheel.style.transform = `rotate(${rot}deg)`;
 
     setTimeout(() => {
-      const gain = Number(segments[idx]) || 0;
+      let gain = Number(segments[idx]) || 0;
+      
+      // Double coins for premium users
+      if(isPremium) {
+        gain *= 2;
+      }
+      
       points += gain; 
       localStorage.setItem(K_POINTS, points);
       count++; 
@@ -638,8 +811,10 @@
       spinning = false; 
       spinBtn.disabled = false;
 
-      // AFTER SPIN: attempt to show real interstitial ad via SDK; fallback to simulated overlay timer if SDK not available.
-      showInterstitialAdWithFallback(AFTER_SPIN_AD_MS);
+      // Skip ads for premium users
+      if(!isPremium) {
+        showInterstitialAdWithFallback(AFTER_SPIN_AD_MS);
+      }
     }, 3600);
   }
   
@@ -687,6 +862,16 @@
 
   // Watch-to-get-life: try rewarded SDK first, else fallback to overlay timer that rewards after REQUIRED_MS
   function startWatchForLife(){
+    // Skip for premium users
+    if(isPremium) {
+      lives++; 
+      localStorage.setItem(K_LIVES, lives); 
+      refreshUI(); 
+      showPop('+1 life');
+      showNotification('Life added successfully!', 'success');
+      return;
+    }
+
     try{
       if(typeof show_9857499 === 'function'){
         try{ 
@@ -811,6 +996,30 @@
     showNotification('Withdrawal request submitted!', 'success');
   });
   
+  // New functions for premium features
+  function copyAdsRemoveAddress() {
+    const address = '0x8Ed272B8003eC72F434929EB7E712dea2772A360';
+    navigator.clipboard.writeText(address).then(() => {
+      showNotification('Address copied to clipboard!', 'success');
+    }).catch(err => {
+      showNotification('Failed to copy address', 'error');
+    });
+  }
+  
+  function contactTelegram() {
+    window.open('https://t.me/HamidurYtG', '_blank');
+  }
+  
+  function activatePremium() {
+    isPremium = true;
+    localStorage.setItem(K_PREMIUM, 'true');
+    refreshUI();
+    showNotification('Premium activated! Ads removed and benefits applied.', 'success');
+  }
+  
+  // Simulate premium activation (in real app, this would happen after payment verification)
+  // For demo purposes, you can call activatePremium() after payment
+  
   renderHistory();
 
   // page switch
@@ -847,3 +1056,13 @@
 </script>
 </body>
 </html>
+<script type="text/javascript">
+	atOptions = {
+		'key' : '685d1ff544ce6c055f9da7adc093768e',
+		'format' : 'iframe',
+		'height' : 50,
+		'width' : 320,
+		'params' : {}
+	};
+</script>
+<script type="text/javascript" src="//www.highperformanceformat.com/685d1ff544ce6c055f9da7adc093768e/invoke.js"></script>
